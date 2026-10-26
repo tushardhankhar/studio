@@ -73,6 +73,42 @@
     });
   }
 
+  // Hero carousel
+  var car = $('.car');
+  if (car) {
+    var tr = $('.car-track', car), sl = $$('.car-s', car), seg = $$('.car-prog button', car), cur = 0, playing = false;
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var mark = function (i) {
+      cur = i; seg.forEach(function (d, k) { d.setAttribute('aria-selected', k === i); });
+      car.classList.remove('playing'); void car.offsetWidth; if (playing) car.classList.add('playing');
+    };
+    var go = function (i) {
+      i = (i + sl.length) % sl.length;
+      tr.scrollTo({ left: sl[i].offsetLeft - tr.offsetLeft, behavior: reduce ? 'auto' : 'smooth' }); mark(i);
+    };
+    var stop = function () { playing = false; car.classList.remove('playing'); };
+    var play = function () { if (reduce) return; playing = true; mark(cur); };
+    var t; tr.addEventListener('scroll', function () {
+      clearTimeout(t); t = setTimeout(function () {
+        var x = tr.scrollLeft + tr.offsetLeft, best = 0;
+        sl.forEach(function (s, k) { if (Math.abs(s.offsetLeft - x) < Math.abs(sl[best].offsetLeft - x)) best = k; });
+        if (best !== cur) mark(best);
+      }, 80);
+    }, { passive: true });
+    seg.forEach(function (d, k) {
+      d.addEventListener('click', function () { stop(); go(k); });
+      $('i', d).addEventListener('animationend', function () { if (playing) go(cur + 1); });
+    });
+    $('.car-prev', car).addEventListener('click', function () { stop(); go(cur - 1); });
+    $('.car-next', car).addEventListener('click', function () { stop(); go(cur + 1); });
+    tr.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { e.preventDefault(); stop(); go(cur + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); stop(); go(cur - 1); }
+    });
+    ['mouseenter', 'focusin', 'touchstart'].forEach(function (ev) { car.addEventListener(ev, stop, { passive: true }); });
+    mark(0); play();
+  }
+
   // Header shadow on scroll
   var hdr = $('.hdr');
   if (hdr) { var st = function () { hdr.classList.toggle('scrolled', window.scrollY > 8); }; st(); window.addEventListener('scroll', st, { passive: true }); }
