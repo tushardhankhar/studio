@@ -7,7 +7,16 @@ npm run build   # writes ./dist
 npm start       # build + serve on http://localhost:4173
 ```
 
-Edit the `SITE` block at the top of `build.mjs` (domain, WhatsApp number, phone, email, city) before launch.
-Testimonials, case studies and portfolio entries are sample content — replace with real client data.
+Edit the `SITE` block at the top of `build.mjs`:
+
+- `phone`, `tel`, `wa`: contact number used everywhere (header, footer, forms, WhatsApp links).
+- `ga4`: Google Analytics 4 measurement ID (analytics stays off while empty).
+- `gsc`: Google Search Console HTML-tag token (optional; you can also verify via DNS).
+
+Prices live in the `PLANS` array (one source of truth). Demos are concept previews of fictional
+businesses (`DEMOS`); only link to a real deployed site once a client has approved it.
+Industry pages are defined in `IND`. Do not add testimonials, client names or results unless they are
+real and authorised.
 
 Deploy `dist/` to any static host (build command: `npm run build`, output directory: `dist`).
+Redirects live in `vercel.json`.

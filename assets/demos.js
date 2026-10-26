@@ -19,7 +19,7 @@
           ['Mains', '🥘', 'Dal Makhani', 'Overnight black lentils', 289],
           ['Desserts', '🍮', 'Gulab Jamun', 'Warm with rabdi', 149],
           ['Desserts', '🍨', 'Kulfi Falooda', 'House-made pistachio kulfi', 179]];
-        return nav('Spice Trail', 'Open till 11 PM · Indiranagar') +
+        return nav('Spice Trail', 'Open till 11 PM') +
           hero('Slow-cooked flavours,<br>served with love.', 'Browse the menu, build your order and reserve a table in seconds.', 'Reserve a table') +
           '<div class="dbody"><h2>Our menu</h2><div class="dtabs">' +
           ['All', 'Starters', 'Mains', 'Desserts'].map(function (t, i) { return '<button class="dtab" data-filter="' + t + '" aria-pressed="' + (i === 0) + '">' + t + '</button>'; }).join('') +
@@ -90,18 +90,13 @@
     }
   };
 
-  var tabs = document.getElementById('demo-tabs'), frame = document.getElementById('demo-frame'), body = document.getElementById('demo-body');
+  var frame = document.getElementById('demo-frame'), body = document.getElementById('demo-body');
   var current = 'restaurant';
 
   function show(key) {
     current = key; var d = demos[key];
-    body.innerHTML = d.html(); frame.style.setProperty('--da', d.accent); url.textContent = 'https://' + d.url;
-    $$('.chip', tabs).forEach(function (c) { c.setAttribute('aria-selected', c.dataset.k === key); });
-    history.replaceState(null, '', '#' + key);
+    body.innerHTML = d.html(); frame.style.setProperty('--da', d.accent); url.textContent = 'Concept preview · fictional business';
   }
-
-  tabs.innerHTML = Object.keys(demos).map(function (k) { return '<button class="chip" role="tab" data-k="' + k + '" aria-selected="false">' + demos[k].label + '</button>'; }).join('');
-  tabs.addEventListener('click', function (e) { var b = e.target.closest('.chip'); if (b) show(b.dataset.k); });
 
   document.querySelectorAll('[data-device]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -128,7 +123,7 @@
     }
     if (t.closest('[data-slots]') && t.matches('.dtab')) { $$('.dtab', t.parentNode).forEach(function (b) { b.setAttribute('aria-pressed', b === t); }); }
     if (t.matches('[data-bhk].dtab')) { bhk = t.dataset.bhk; $$('[data-bhk].dtab', body).forEach(function (b) { b.setAttribute('aria-pressed', b === t); }); filterHomes(); }
-    if (t.matches('[data-enq]')) note('Enquiry sent! An agent will WhatsApp you the brochure and site-visit slots.');
+    if (t.matches('[data-enq]')) note('Enquiry received in this concept preview. Nothing was sent.');
   });
   var bhk = 'Any';
   function filterHomes() {
@@ -145,10 +140,10 @@
     }
   });
   body.addEventListener('submit', function (e) {
-    e.preventDefault(); var n = body.querySelector('.dnote'); n.hidden = false; n.textContent = e.target.dataset.confirm; e.target.reset();
+    e.preventDefault(); var n = body.querySelector('.dnote'); n.hidden = false; n.textContent = e.target.dataset.confirm + ' (Concept preview: nothing was sent.)'; e.target.reset();
   });
 
   var origShow = show;
   show = function (k) { state = { count: 0, total: 0 }; bhk = 'Any'; origShow(k); };
-  var start = location.hash.slice(1); show(demos[start] ? start : 'restaurant');
+  show(demos[frame.dataset.demo] ? frame.dataset.demo : 'restaurant');
 })();

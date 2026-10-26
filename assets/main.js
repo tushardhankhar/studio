@@ -23,52 +23,104 @@
     rv.forEach(function (el) { io.observe(el); });
   } else rv.forEach(function (el) { el.classList.add('in'); });
 
-  // Count-up stats
-  $$('[data-count]').forEach(function (el) {
-    var end = +el.dataset.count, suf = el.dataset.suffix || '', done = false;
-    var run = function () {
-      if (done) return; done = true;
-      var t0 = performance.now();
-      (function tick(t) {
-        var p = Math.min((t - t0) / 1200, 1);
-        el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3))) + suf;
-        if (p < 1) requestAnimationFrame(tick);
-      })(t0);
-    };
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (es, o) { if (es[0].isIntersecting) { run(); o.disconnect(); } }).observe(el);
-    } else el.textContent = end + suf;
+  // Analytics: sends to GA4 when configured, otherwise to dataLayer only.
+  // These are click/interaction events, not confirmed leads.
+  var track = function (name, params) {
+    try {
+      if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
+      else { window.dataLayer = window.dataLayer || []; window.dataLayer.push(Object.assign({ event: name }, params || {})); }
+    } catch (e) { /* never block the page */ }
+  };
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('[data-track]');
+    if (!a) return;
+    var p = { location: a.dataset.loc || 'page' };
+    if (a.dataset.package) p.package = a.dataset.package;
+    if (a.dataset.demo) p.demo = a.dataset.demo;
+    track(a.dataset.track, p);
+    if (a.dataset.demo && a.dataset.track === 'whatsapp_click') track('demo_enquiry_click', { demo: a.dataset.demo });
   });
 
-  // Plan enquiry buttons
-  $$('[data-wa-msg]').forEach(function (a) { a.href = wa(a.dataset.waMsg); });
-
-  // Price estimator
+  // Price estimator: package price is a starting price; add-ons are quoted separately
   var calc = $('#calc');
   if (calc) {
-    var fmt = function (n) { return '₹' + n.toLocaleString('en-IN'); };
-    var out = $('#calc-total'), link = $('#calc-wa');
+    var fmt = function (n) { return '\u20B9' + n.toLocaleString('en-IN'); };
+    var out = $('#calc-total'), note = $('#calc-note'), link = $('#calc-wa');
     var update = function () {
-      var total = 0, picks = [];
-      $$('input', calc).forEach(function (i) {
-        if (i.checked) { total += +i.dataset.price; picks.push(i.dataset.label); }
-      });
-      out.textContent = fmt(total);
-      link.href = wa('Hi! I used your estimator. I need: ' + picks.join(', ') + '. Estimated budget ' + fmt(total) + '. Can we discuss?');
+      var pk = $('input[name="pkg"]:checked', calc);
+      var extras = $$('input[name="addon"]:checked', calc).map(function (i) { return i.dataset.label; });
+      var price = +pk.dataset.price, name = pk.dataset.label.replace(' package', '');
+      out.textContent = fmt(price) + '+';
+      note.textContent = extras.length
+        ? 'Starting price for the ' + name + ' package, plus ' + extras.length + ' extra' + (extras.length > 1 ? 's' : '') + ' quoted after scope review.'
+        : 'Starting price for the ' + name + ' package. Final price depends on scope.';
+      link.href = wa('Hi Tushar! I used your estimator. I\'m interested in the ' + name + ' package (starting at ' + fmt(price) + ')' +
+        (extras.length ? ' with: ' + extras.join(', ') : '') + '. Could you share a quote for my business?');
+      link.dataset.package = name;
+      return { package: name, extras: extras.length };
     };
-    calc.addEventListener('change', update); update();
+    calc.addEventListener('change', function () { track('estimator_interaction', update()); });
+    update();
   }
 
-  // Contact form → WhatsApp (works without a backend) with mailto fallback
+  // Demo gallery filters
+  var fbar = $('#demo-filters');
+  if (fbar) {
+    fbar.addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-fcat]'); if (!b) return;
+      $$('[data-fcat]', fbar).forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      $$('#demo-grid .dc').forEach(function (c) { c.hidden = b.dataset.fcat !== 'All' && c.dataset.cat !== b.dataset.fcat; });
+      $$('.rail').forEach(function (r) { if (r._refresh) r._refresh(); });
+      track('demo_filter', { category: b.dataset.fcat });
+    });
+  }
+
+  // Mobile rails: swipeable strips with dots (or labelled tabs) synced to scroll position
+  var rtReduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $$('.rail').forEach(function (r) {
+    var tabs = r.dataset.tabs ? r.dataset.tabs.split(';').map(function (t) { return t.split('|'); }) : null;
+    var ctl = document.createElement('div'), btns = [];
+    ctl.className = tabs ? 'rail-tabs' : 'rail-dots';
+    if (tabs) { ctl.setAttribute('role', 'group'); ctl.setAttribute('aria-label', r.getAttribute('aria-label') + ' selector'); r.parentNode.insertBefore(ctl, r); }
+    else r.parentNode.insertBefore(ctl, r.nextSibling);
+    r.setAttribute('role', 'region'); r.setAttribute('tabindex', '0');
+    var items = function () { return Array.prototype.filter.call(r.children, function (c) { return !c.hidden; }); };
+    var center = function (it, smooth) { r.scrollTo({ left: it.offsetLeft + it.offsetWidth / 2 - r.clientWidth / 2, behavior: smooth && !rtReduce ? 'smooth' : 'auto' }); };
+    var sync = function () {
+      var its = items(), mid = r.scrollLeft + r.clientWidth / 2, best = 0, bd = 1e9;
+      its.forEach(function (it, i) { var d = Math.abs(it.offsetLeft + it.offsetWidth / 2 - mid); if (d < bd) { bd = d; best = i; } });
+      btns.forEach(function (b, i) { b.setAttribute('aria-current', i === best); });
+    };
+    var build = function () {
+      var its = items(); ctl.innerHTML = '';
+      btns = its.map(function (it, i) {
+        var b = document.createElement('button'); b.type = 'button';
+        if (tabs && tabs[i]) b.innerHTML = tabs[i][0] + '<small>' + tabs[i][1] + '</small>';
+        else b.setAttribute('aria-label', 'Go to item ' + (i + 1) + ' of ' + its.length);
+        b.addEventListener('click', function () { center(it, true); });
+        ctl.appendChild(b); return b;
+      });
+      sync();
+    };
+    var t; r.addEventListener('scroll', function () { clearTimeout(t); t = setTimeout(sync, 50); }, { passive: true });
+    window.addEventListener('resize', sync);
+    r._refresh = function () { r.scrollLeft = 0; build(); };
+    build();
+    if (r.dataset.start && r.scrollWidth > r.clientWidth) { center(items()[+r.dataset.start], false); sync(); }
+  });
+
+  // Contact form -> pre-filled WhatsApp message (no backend). Fires after validation only.
   var form = $('#lead-form');
   if (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       if (form.website.value) return; // honeypot
+      if (!form.checkValidity()) { form.reportValidity(); return; }
       var f = new FormData(form);
-      var msg = 'Hi! I\'m ' + f.get('name') + ' (' + f.get('business') + ').\nPhone: ' + f.get('phone') +
-        '\nI need: ' + f.get('type') + '\nBudget: ' + f.get('budget') + '\n\n' + (f.get('message') || '');
-      $('#form-status').textContent = 'Opening WhatsApp… if nothing happens, tap the green button or email us.';
+      var msg = 'Hi Tushar! I\'m ' + f.get('name') + ' from ' + f.get('business') + '.\nPhone: ' + f.get('phone') +
+        '\nI need: ' + f.get('type') + '\nPackage: ' + f.get('package') + '\n\n' + (f.get('message') || '');
+      $('#form-status').textContent = 'Opening WhatsApp. Press send there to deliver your enquiry. If nothing opens, tap the WhatsApp number on this page.';
+      track('quote_form_submit', { package: f.get('package'), type: f.get('type') });
       window.open(wa(msg), '_blank', 'noopener');
     });
   }
@@ -112,6 +164,26 @@
   // Header shadow on scroll
   var hdr = $('.hdr');
   if (hdr) { var st = function () { hdr.classList.toggle('scrolled', window.scrollY > 8); }; st(); window.addEventListener('scroll', st, { passive: true }); }
+
+  // Home, mobile only: show the demos before the customer-journey card
+  var jflow = $('.hero .flow'), jdemos = $('#work');
+  if (jflow && jdemos && window.matchMedia) {
+    var jhome = jflow.parentNode, jhold = document.createElement('section'), mq = matchMedia('(max-width: 760px)');
+    jhold.className = 'flow-sec'; jhold.innerHTML = '<div class="wrap"></div>';
+    var place = function () {
+      if (mq.matches) { jdemos.parentNode.insertBefore(jhold, jdemos.nextSibling); $('.wrap', jhold).appendChild(jflow); }
+      else { jhome.appendChild(jflow); if (jhold.parentNode) jhold.parentNode.removeChild(jhold); }
+    };
+    place();
+    if (mq.addEventListener) mq.addEventListener('change', place); else mq.addListener(place);
+  }
+
+  // Floating WhatsApp button: stays out of the way until the visitor scrolls
+  var fab = $('.wa');
+  if (fab) {
+    var vis = function () { fab.classList.toggle('wa-hide', window.scrollY < 320); };
+    vis(); window.addEventListener('scroll', vis, { passive: true });
+  }
 
   // Footer year
   $$('[data-year]').forEach(function (e) { e.textContent = new Date().getFullYear(); });
