@@ -1,0 +1,12 @@
+{
+  "name": "studio-by-tushar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Marketing site for Studio by Tushar — web design for small businesses in India",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node build.mjs && python3 -m http.server 4173 --directory dist"
+  },
+  "engines": { "node": ">=18" }
+}
