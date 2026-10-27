@@ -88,7 +88,7 @@ const LIVE = [
 ];
 const liveMsg = (s) => `Hi Tushar! I saw ${s.title} in your portfolio and I'd like a similar website for my business. Can we talk?`;
 const liveCard = (s, loc) => `<article class="card work pf-live rv"><a class="shot" href="${s.url}" target="_blank" rel="noopener noreferrer" data-track="portfolio_view" data-loc="${loc}" data-site="${s.id}" tabindex="-1" aria-hidden="true"><img src="${s.img}" alt="${s.alt}" width="960" height="600" loading="lazy" decoding="async"></a><div class="body"><div class="meta"><span class="pill pill-live">Live</span><span class="pill">${s.cat}</span></div><h3>${s.title}</h3><p>${s.blurb}</p><div class="meta">${s.tags.map((t) => `<span class="pill">${t}</span>`).join('')}</div><div class="row"><a class="btn btn-primary btn-sm" href="${s.url}" target="_blank" rel="noopener noreferrer" data-track="portfolio_view" data-loc="${loc}" data-site="${s.id}">View Live Site <span aria-hidden="true">↗</span></a>${waA(liveMsg(s), 'Build Something Similar', { cls: 'btn btn-ghost btn-sm', loc: 'portfolio-live', extra: ` data-site="${s.id}"` })}</div></div></article>`;
-const liveGrid = (loc) => `<div class="grid g2 live-grid">${LIVE.map((s) => liveCard(s, loc)).join('')}</div>`;
+const liveGrid = (loc) => `<div class="grid g3 live-grid">${LIVE.map((s) => liveCard(s, loc)).join('')}</div>`;
 
 // ---------------------------------------------------------------------------
 // Industry pages: original content per page
@@ -281,7 +281,7 @@ const carousel = `<div class="car" role="region" aria-roledescription="carousel"
 const homeWork = `<section id="work"><div class="wrap">
 <span class="eyebrow">Portfolio</span><h2>Websites I've <span class="hl">built</span></h2>
 <p class="lead">Live websites you can visit right now. Client work will be added only with permission.</p>
-<div class="grid g2 live-grid rail" aria-label="Websites I've built">${LIVE.map((s) => liveCard(s, 'home')).join('')}</div>
+<div class="grid g3 live-grid rail" aria-label="Websites I've built">${LIVE.map((s) => liveCard(s, 'home')).join('')}</div>
 <div class="center" style="margin-top:2rem"><a class="btn btn-ghost" href="/portfolio/">See the full portfolio →</a></div>
 </div></section>`;
 
@@ -537,7 +537,7 @@ pages['/portfolio/'] = {
   desc: 'See live websites built by Tushar, plus concept projects and sample sites in progress. Client work is shown only with permission.',
   schema: [org, crumbs([['Home', '/'], ['Portfolio', '/portfolio/']])],
   body: `
-${pageHero([['Portfolio']], 'Portfolio', 'Honest work, <span class="hl">clearly labelled</span>', 'Two websites I have built are live below. Client projects will be added only with permission, and full sample websites for each industry are in progress.')}
+${pageHero([['Portfolio']], 'Portfolio', 'Honest work, <span class="hl">clearly labelled</span>', 'Three websites I have built are live below. Client projects will be added only with permission, and full sample websites for each industry are in progress.')}
 <section style="padding-top:1rem"><div class="wrap">
 <span class="eyebrow">Live websites</span><h2>Websites I've <span class="hl">built</span></h2>
 ${liveGrid('portfolio')}
